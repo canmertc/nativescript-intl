@@ -10,5 +10,8 @@
     "tns-platform-declarations": "~6.5.8",
     "tslint": "^6.1.0",
     "typescript": "^3.9.0"
+  },
+  "dependencies": {
+    "currency-symbol-map": "^5.1.0"
   }
 }

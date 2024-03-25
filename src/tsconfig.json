@@ -9,14 +9,9 @@
         "preserveConstEnums": true,
         "sourceMap": false,
         "declaration": false,
-        "lib": [
-            "es2017"
-        ]
+        "allowSyntheticDefaultImports": true,
+        "lib": ["es2017"]
     },
-    "include": [
-        "./**/*.ts",
-        "./**/*.d.ts",
-        "!./node_modules/**/*.ts"
-    ],
+    "include": ["./**/*.ts", "./**/*.d.ts", "!./node_modules/**/*.ts"],
     "exclude": []
 }

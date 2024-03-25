@@ -1,20 +1,15 @@
-import {
-    DateTimeFormat as commonDateTimeFormat,
-    NumberFormat as commonNumberFormat,
-    FULL
-} from "./nativescript-intl-common";
+import { DateTimeFormat as commonDateTimeFormat, NumberFormat as commonNumberFormat, FULL } from "./nativescript-intl-common";
 import { NumberFormatOptions } from "./nativescript-intl";
+import getSymbolFromCurrency from "currency-symbol-map";
 
 export class DateTimeFormat extends commonDateTimeFormat {
-    public getNativePattern(patternDefinition: {date?: string, time?: string}, locale?: string): string {
+    public getNativePattern(patternDefinition: { date?: string; time?: string }, locale?: string): string {
         let dateFormatter = NSDateFormatter.new();
         if (locale) {
             dateFormatter.locale = NSLocale.alloc().initWithLocaleIdentifier(locale);
         }
         if (patternDefinition.date) {
-            dateFormatter.dateStyle = patternDefinition.date === FULL ?
-                NSDateFormatterStyle.FullStyle :
-                NSDateFormatterStyle.ShortStyle;
+            dateFormatter.dateStyle = patternDefinition.date === FULL ? NSDateFormatterStyle.FullStyle : NSDateFormatterStyle.ShortStyle;
         }
         if (patternDefinition.time) {
             dateFormatter.timeStyle = NSDateFormatterStyle.LongStyle;
@@ -43,61 +38,68 @@ export class DateTimeFormat extends commonDateTimeFormat {
 // minimumFractionDigits?: number;
 // maximumFractionDigits?: number;
 export class NumberFormat extends commonNumberFormat {
-    public formatNative(value: number, locale?: string, options?: NumberFormatOptions, pattern?: string) {
-        let numberFormat = NSNumberFormatter.new();
+    public numberFormat: NSNumberFormatter;
+    constructor(locale?: string, options?: NumberFormatOptions, pattern?: string) {
+        super(locale, options, pattern);
+        this.numberFormat = NSNumberFormatter.new();
         if (locale) {
-            numberFormat.locale = NSLocale.alloc().initWithLocaleIdentifier(locale);
+            this.numberFormat.locale = NSLocale.alloc().initWithLocaleIdentifier(locale);
         }
-        if (options) {
+        if (options && options.style) {
             switch (options.style.toLowerCase()) {
                 case "decimal":
-                    numberFormat.numberStyle = NSNumberFormatterStyle.DecimalStyle;
+                    this.numberFormat.numberStyle = NSNumberFormatterStyle.DecimalStyle;
                     break;
                 case "percent":
-                    numberFormat.numberStyle = NSNumberFormatterStyle.PercentStyle;
+                    this.numberFormat.numberStyle = NSNumberFormatterStyle.PercentStyle;
                     break;
                 case "currency":
-                    numberFormat.numberStyle = NSNumberFormatterStyle.CurrencyStyle;
+                    this.numberFormat.numberStyle = NSNumberFormatterStyle.CurrencyStyle;
                     if (options.currency !== void 0) {
-                        numberFormat.currencyCode = options.currency;
+                        this.numberFormat.currencyCode = options.currency;
+                        if (options && options.currencyDisplay === "narrowSymbol") {
+                            const currencySymbol = getSymbolFromCurrency(options.currency);
+                            if (currencySymbol) this.numberFormat.currencySymbol = currencySymbol;
+                        }
                     }
                     break;
                 default:
-                    numberFormat.numberStyle = NSNumberFormatterStyle.DecimalStyle;
+                    this.numberFormat.numberStyle = NSNumberFormatterStyle.DecimalStyle;
                     break;
             }
         } else {
-            numberFormat.numberStyle = NSNumberFormatterStyle.DecimalStyle;
+            this.numberFormat.numberStyle = NSNumberFormatterStyle.DecimalStyle;
         }
 
         if (options && options.minimumIntegerDigits !== void 0) {
-            numberFormat.minimumIntegerDigits = options.minimumIntegerDigits;
+            this.numberFormat.minimumIntegerDigits = options.minimumIntegerDigits;
         }
 
         if (options && options.minimumFractionDigits !== void 0) {
-            numberFormat.minimumFractionDigits = options.minimumFractionDigits;
+            this.numberFormat.minimumFractionDigits = options.minimumFractionDigits;
         }
 
         if (options && options.maximumFractionDigits !== void 0) {
-            numberFormat.maximumFractionDigits = options.maximumFractionDigits;
+            this.numberFormat.maximumFractionDigits = options.maximumFractionDigits;
         }
 
         if (options && options.useGrouping !== void 0) {
-            numberFormat.usesGroupingSeparator = options.useGrouping;
+            this.numberFormat.usesGroupingSeparator = options.useGrouping;
         }
 
         if (pattern) {
-            numberFormat.positiveFormat = pattern;
+            this.numberFormat.positiveFormat = pattern;
         } else {
-            if (options && (options.style.toLowerCase() === "currency" && options.currencyDisplay === "code")) {
-                let tempPattern = numberFormat.positiveFormat;
+            if (options && options.style && options.style.toLowerCase() === "currency" && options.currencyDisplay === "code") {
+                let tempPattern = this.numberFormat.positiveFormat;
                 // this will display currency code instead of currency symbol
                 tempPattern = tempPattern.replace("¤", "¤¤");
-                numberFormat.positiveFormat = tempPattern;
+                this.numberFormat.positiveFormat = tempPattern;
             }
         }
+    }
 
-        // return numberFormat.stringFromNumber(NSNumber.alloc().initWithDouble(value));
-        return numberFormat.stringFromNumber(value);
+    public formatNative(value: number) {
+        return this.numberFormat.stringFromNumber(value);
     }
 }
