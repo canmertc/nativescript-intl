@@ -171,7 +171,7 @@ export class NumberFormat extends commonNumberFormat {
 
         this.numberFormat.setDecimalFormatSymbols(decimalFormatSymbols);
 
-        if (options && options.style.toLowerCase() === "currency" && options.currencyDisplay === "code") {
+        if (options && options.style && options.style.toLowerCase() === "currency" && options.currencyDisplay === "code") {
             if (!pattern) {
                 let currrentPattern = this.numberFormat.toPattern();
                 // this will display currency code instead of currency symbol
