@@ -10,7 +10,7 @@
         "sourceMap": false,
         "declaration": false,
         "allowSyntheticDefaultImports": true,
-        "lib": ["es2017"]
+        "lib": ["es2017", "dom"]
     },
     "include": ["./**/*.ts", "./**/*.d.ts", "!./node_modules/**/*.ts"],
     "exclude": []

@@ -117,7 +117,7 @@ export class NumberFormat extends commonNumberFormat {
         if (pattern) {
             this.numberFormat = new java.text.DecimalFormat(pattern);
         } else {
-            if (options && options.style) {
+            if (options?.style) {
                 switch (options.style.toLowerCase()) {
                     case "decimal":
                         this.numberFormat = java.text.NumberFormat.getNumberInstance(getNativeLocale(locale));
@@ -160,7 +160,7 @@ export class NumberFormat extends commonNumberFormat {
             ? new java.text.DecimalFormatSymbols(getNativeLocale(locale))
             : new java.text.DecimalFormatSymbols();
 
-        if (options && options.currency !== void 0) {
+        if (options?.currency !== void 0) {
             decimalFormatSymbols.setCurrency(java.util.Currency.getInstance(options.currency));
             // Use a narrow format symbol ("$100" rather than "US$100") (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/NumberFormat#narrowsymbol)
             if (options && options.currencyDisplay === "narrowSymbol") {
@@ -171,7 +171,7 @@ export class NumberFormat extends commonNumberFormat {
 
         this.numberFormat.setDecimalFormatSymbols(decimalFormatSymbols);
 
-        if (options && options.style && options.style.toLowerCase() === "currency" && options.currencyDisplay === "code") {
+        if (options?.style?.toLowerCase() === "currency" && options.currencyDisplay === "code") {
             if (!pattern) {
                 let currrentPattern = this.numberFormat.toPattern();
                 // this will display currency code instead of currency symbol
@@ -183,6 +183,41 @@ export class NumberFormat extends commonNumberFormat {
     }
 
     public formatNative(value: number) {
-        return this.numberFormat.format(value);
+        const formattedValue = this.numberFormat.format(value);
+
+        // WORKAROUND: 'format' method used to return incorrect grouping separator for 'en-BE'
+        // on some Android devices (mostly API level 34) (e.g. €1,234,567,89 instead of €1.234.567,89).
+        const dfs = this.numberFormat.getDecimalFormatSymbols();
+        let groupingSeparator = dfs.getGroupingSeparator();
+        if (![".", ","].includes(groupingSeparator)) groupingSeparator = String.fromCharCode(160);
+
+        const groupingSize = this.numberFormat.getGroupingSize();
+
+        if (this.numberFormat.isGroupingUsed() && value >= Math.pow(10, groupingSize) && !formattedValue.includes(groupingSeparator)) {
+            const currentPattern = this.numberFormat.toPattern();
+            const hasDecimalSeparator = currentPattern.includes(".");
+            const hasFractionalPart = !!(value - Math.floor(value));
+            const isCurrencyInstance = currentPattern.includes("¤");
+            const decimalSeparator = isCurrencyInstance ? dfs.getMonetaryDecimalSeparator() : dfs.getDecimalSeparator();
+
+            const currencySuffixOffset = currentPattern.length - (currentPattern.lastIndexOf("#") + 1);
+
+            const decimalSeparatorIndex =
+                hasDecimalSeparator && hasFractionalPart ? formattedValue.lastIndexOf(decimalSeparator) : undefined;
+            const integerPart =
+                hasDecimalSeparator && hasFractionalPart
+                    ? formattedValue.substring(0, decimalSeparatorIndex)
+                    : formattedValue.substring(0, formattedValue.length - currencySuffixOffset);
+            const incorrectGroupingSeparator = integerPart[integerPart.length - groupingSize - 1];
+            const integerPartCorrected = integerPart.replaceAll(incorrectGroupingSeparator, groupingSeparator);
+
+            return (
+                integerPartCorrected +
+                (decimalSeparatorIndex ? formattedValue.substring(decimalSeparatorIndex) : "") +
+                (currencySuffixOffset ? formattedValue.substring(formattedValue.length - currencySuffixOffset) : "")
+            ); // Corrected formatted value
+        } else {
+            return formattedValue;
+        }
     }
 }
